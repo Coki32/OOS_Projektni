@@ -16,8 +16,16 @@ void f() {
 void g() {
 	FileSystem fs(DEFAULT_FILENAME);
 }
+
 int main() {
+	g();
+	return 0;
+}
+int main2() {
+	f();
+	g();
 	Bitmap bmp(256,1);
+	bmp.setBit(0);
 	bmp.setBit(14);
 	bmp.setBit(15);
 	bmp.setBit(16);

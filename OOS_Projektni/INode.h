@@ -1,37 +1,39 @@
 #pragma once
+#include <cinttypes>
+#include <vector>
 #include "Blok.h"
 #include "Data.h"
-
 
 class INode
 {
 public:
+	static const uint32_t NOT_SET = 0xFFFFFFFF;
 	union {
-		int permissiosns;
+		uint32_t permissiosns;
 		union {
-			int dir : 3;
-			int user : 3;
-			int group : 3;
-			int all : 3;
-			int usesExtents : 1;
+			uint32_t dir : 3;
+			uint32_t user : 3;
+			uint32_t group : 3;
+			uint32_t all : 3;
+			uint32_t usesExtents : 1;
 		};//Total 13 zasad
 		//Ako predjes 31 kriza
 	};
 
 	union {
-		int blocks[12];
-		int extentInfo[6][2];
+		uint32_t blocks[12];
+		uint32_t extentInfo[6][2];
 	};
 	size_t nextNode;
 public:
 	INode() {
 		permissiosns = 0;
-		for (int i = 0; i < 12; i++)
-			blocks[i] = -1;
-		nextNode = 0;
+		for (uint32_t i = 0; i < 12; i++)
+			blocks[i] = NOT_SET;
+		nextNode = NOT_SET;
 	}
-	void writeData(Block* dataSegment, Data *data);
-	Data readData();
+
+	std::vector<int> getBlocks();
 
 	inline size_t getActualSize() const {
 		return sizeof(*this);

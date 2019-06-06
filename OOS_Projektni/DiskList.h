@@ -8,8 +8,8 @@
 struct DiskList
 {
 
-	static std::unique_ptr<Data> toData(const std::vector<ListItem>& items);
+	static std::shared_ptr<Data> toData(const std::vector<ListItem>& items);
 
-	static std::vector<ListItem> fromData(const std::unique_ptr<Data>& data);
+	static std::vector<ListItem> fromData(const std::shared_ptr<Data>& data);
 };
 

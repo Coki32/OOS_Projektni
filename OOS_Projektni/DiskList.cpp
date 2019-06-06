@@ -41,12 +41,12 @@ struct BinaryListEntry {
 	}
 };
 
-std::unique_ptr<Data> DiskList::toData(const std::vector<ListItem>& items)
+std::shared_ptr<Data> DiskList::toData(const std::vector<ListItem>& items)
 {
 	size_t count = items.size();
 	size_t totalSize = 0, complete = 0;
 
-	std::unique_ptr<Data> result = std::make_unique<Data>();
+	std::shared_ptr<Data> result = std::make_unique<Data>(nullptr,0);
 	std::vector<BinaryListEntry> entries;
 
 	for(const auto& li : items){
@@ -74,7 +74,7 @@ std::unique_ptr<Data> DiskList::toData(const std::vector<ListItem>& items)
 	return result;//vrati Data pokazivac
 }
 
-std::vector<ListItem> DiskList::fromData(const std::unique_ptr<Data>& data)
+std::vector<ListItem> DiskList::fromData(const std::shared_ptr<Data>& data)
 {
 	size_t numberOfElements;
 	char* binary = &data->data[0];
