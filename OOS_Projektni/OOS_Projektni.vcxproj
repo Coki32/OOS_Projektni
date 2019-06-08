@@ -128,21 +128,25 @@
     <ClCompile Include="Blok.cpp" />
     <ClCompile Include="Data.cpp" />
     <ClCompile Include="DiskList.cpp" />
+    <ClCompile Include="File.cpp" />
     <ClCompile Include="FileSystem.cpp" />
     <ClCompile Include="INode.cpp" />
-    <ClCompile Include="ListItem.cpp" />
-    <ClCompile Include="MemoryList.cpp" />
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="Util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bitmap.h" />
     <ClInclude Include="Blok.h" />
     <ClInclude Include="Data.h" />
     <ClInclude Include="DiskList.h" />
+    <ClInclude Include="File.h" />
     <ClInclude Include="FileSystem.h" />
     <ClInclude Include="INode.h" />
     <ClInclude Include="ListItem.h" />
-    <ClInclude Include="MemoryList.h" />
+    <ClInclude Include="Util.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="slika.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

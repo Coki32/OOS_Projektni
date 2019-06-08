@@ -13,60 +13,86 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\FilesystemStuff">
+      <UniqueIdentifier>{02a0e3b2-90e4-4705-b108-416ab5183361}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\FilesystemStuff">
+      <UniqueIdentifier>{654b8644-5f7b-4aa0-864b-93937f61a84a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\IOOperatrions">
+      <UniqueIdentifier>{1ae186f0-5b99-41d2-a863-b53893cd7a58}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\IOOperations">
+      <UniqueIdentifier>{d980f39a-1d11-4f7c-b910-5fe76e8575a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Util">
+      <UniqueIdentifier>{45096e5b-104a-4638-9784-8c730d7dfa53}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Util">
+      <UniqueIdentifier>{7b867629-7928-446c-bd75-2c6a076fda01}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="INode.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Blok.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Data.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Bitmap.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\FilesystemStuff</Filter>
     </ClCompile>
-    <ClCompile Include="FileSystem.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Blok.cpp">
+      <Filter>Source Files\FilesystemStuff</Filter>
     </ClCompile>
-    <ClCompile Include="MemoryList.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Data.cpp">
+      <Filter>Source Files\FilesystemStuff</Filter>
     </ClCompile>
     <ClCompile Include="DiskList.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\FilesystemStuff</Filter>
     </ClCompile>
-    <ClCompile Include="ListItem.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="FileSystem.cpp">
+      <Filter>Source Files\FilesystemStuff</Filter>
+    </ClCompile>
+    <ClCompile Include="INode.cpp">
+      <Filter>Source Files\FilesystemStuff</Filter>
+    </ClCompile>
+    <ClCompile Include="File.cpp">
+      <Filter>Source Files\IOOperations</Filter>
+    </ClCompile>
+    <ClCompile Include="Util.cpp">
+      <Filter>Source Files\Util</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="INode.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Bitmap.h">
+      <Filter>Header Files\FilesystemStuff</Filter>
     </ClInclude>
     <ClInclude Include="Blok.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\FilesystemStuff</Filter>
     </ClInclude>
     <ClInclude Include="Data.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Bitmap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FileSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MemoryList.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\FilesystemStuff</Filter>
     </ClInclude>
     <ClInclude Include="DiskList.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\FilesystemStuff</Filter>
+    </ClInclude>
+    <ClInclude Include="FileSystem.h">
+      <Filter>Header Files\FilesystemStuff</Filter>
+    </ClInclude>
+    <ClInclude Include="INode.h">
+      <Filter>Header Files\FilesystemStuff</Filter>
     </ClInclude>
     <ClInclude Include="ListItem.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\FilesystemStuff</Filter>
     </ClInclude>
+    <ClInclude Include="File.h">
+      <Filter>Header Files\IOOperatrions</Filter>
+    </ClInclude>
+    <ClInclude Include="Util.h">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="slika.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

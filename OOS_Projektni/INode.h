@@ -7,6 +7,7 @@
 class INode
 {
 public:
+	enum TYPE { FILE=0, FOLDER =1 };
 	static const uint32_t NOT_SET = 0xFFFFFFFF;
 	union {
 		uint32_t permissiosns;
@@ -16,6 +17,7 @@ public:
 			uint32_t group : 3;
 			uint32_t all : 3;
 			uint32_t usesExtents : 1;
+			uint32_t type : 1;
 		};//Total 13 zasad
 		//Ako predjes 31 kriza
 	};
@@ -24,13 +26,18 @@ public:
 		uint32_t blocks[12];
 		uint32_t extentInfo[6][2];
 	};
-	size_t nextNode;
+	uint16_t nextNode;
+	uint16_t fileSize;
 public:
+	INode(uint16_t fileSize) : INode() {
+		this->fileSize = fileSize;
+	}
 	INode() {
 		permissiosns = 0;
 		for (uint32_t i = 0; i < 12; i++)
 			blocks[i] = NOT_SET;
-		nextNode = NOT_SET;
+		nextNode = (uint16_t)NOT_SET;
+		fileSize = 0;
 	}
 
 	std::vector<int> getBlocks();

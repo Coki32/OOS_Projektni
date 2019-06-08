@@ -32,6 +32,13 @@ std::shared_ptr<Data> Data::removeNFromLeft(size_t n) const
 		return std::make_shared<Data>(data.get()+n, length-n);
 }
 
+std::shared_ptr<Data> Data::takeNFromLeft(size_t n) const
+{
+	if (n > this->length)
+		throw std::exception("ne uzeti vise nego sto ima!");
+	return std::make_shared<Data>(this->data.get(), n);
+}
+
 std::shared_ptr<Data> Data::append(const std::shared_ptr<Data>& other)
 {
 	size_t newLength = length + other->length;

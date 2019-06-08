@@ -76,15 +76,17 @@ std::shared_ptr<Data> DiskList::toData(const std::vector<ListItem>& items)
 
 std::vector<ListItem> DiskList::fromData(const std::shared_ptr<Data>& data)
 {
-	size_t numberOfElements;
-	char* binary = &data->data[0];
-	numberOfElements = *(int*)binary;//prvi podatak je int koliko ih je
-	binary += sizeof(numberOfElements);
 	std::vector<ListItem> items;
-	for (int i = 0; i < numberOfElements; i++) {
-		BinaryListEntry entry = BinaryListEntry::fromBinary(binary);
-		items.push_back(entry.toFancyItem());
-		binary += entry.getActualSize();
+	if (data->length > 0) {
+		size_t numberOfElements;
+		char* binary = &data->data[0];
+		numberOfElements = *(int*)binary;//prvi podatak je int koliko ih je
+		binary += sizeof(numberOfElements);
+		for (int i = 0; i < numberOfElements; i++) {
+			BinaryListEntry entry = BinaryListEntry::fromBinary(binary);
+			items.push_back(entry.toFancyItem());
+			binary += entry.getActualSize();
+		}
 	}
 	return items;
 }

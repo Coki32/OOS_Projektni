@@ -9,7 +9,10 @@
 #include "INode.h"
 #include "ListItem.h"
 
+#include "File.h"
+
 #define DEFAULT_FILENAME "defaultName.ext4nt"
+
 class FileSystem
 {
 
@@ -35,15 +38,35 @@ public:
 
 	~FileSystem();
 
-	size_t writeBytes(size_t nodeId, const std::shared_ptr<Data>& data);
 
 	std::shared_ptr<Data> readData(size_t nodeID);
 
+	//writes to first free node
+	size_t writeFile(const std::shared_ptr<Data>& data);
+	size_t writeFile(const std::shared_ptr<Data>& data, const std::string& path);
+
+
+	//mkdir
+	size_t mkdir(const std::string& folderName);
+
+
+/*
+	1 - Mark all nodes as free
+	2 - Mark all blocks as free
+*/
+	void deleteFile(size_t nodeID);
+
+
+	std::shared_ptr<Data> readFile(size_t nodeID);
 
 	size_t getActualSize() const;
 	size_t getDataSize() const;
 
 private:
+
+	void saveFileList(size_t nodeId, const std::vector<ListItem>& list);
+	std::vector<ListItem> loadFileList(size_t nodeId);
+
 	std::shared_ptr<INode> loadNode(size_t nodeID);
 	std::shared_ptr<Data> getNodeData(const std::shared_ptr<INode>& node);
 	void writeNode(size_t nodeID, const std::shared_ptr<INode>& node);
@@ -52,15 +75,10 @@ private:
 	//Upisuje 128 bajtova u taj blok, kao rezultat vraca sto je ostalo da se upise dalje
 	std::shared_ptr<Data> writeBlock(size_t blockID, const std::shared_ptr<Data>& data);
 
-	//Brise fajl tako sto
-	/*
-		1 - oznaci node da je slobodan
-		2 - oznaci sve blokove node-a da su slobodni
-	*/
-	void deleteFile(size_t nodeID);
 	
-	//Upisuje sadrzaj u neki iNode, vraca broj iNode-a
-	size_t writeFile(const std::shared_ptr<Data>& data);
+	//writes to the specified node, overwriting it, no checks performed
+	size_t writeFile(size_t nodeId, const std::shared_ptr<Data>& data);
+
 
 
 	void saveBitmaps();
