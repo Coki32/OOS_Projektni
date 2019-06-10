@@ -59,3 +59,12 @@ std::vector<std::pair<int, int>> Bitmap::findExtentStart_v(size_t extentSizeInBy
 	return ret;
 }
 
+size_t Bitmap::count(int value)
+{
+	size_t c = 0;
+	for (int i = 0; i < numberOfBits; i++)
+		if (getBit(i) == value)
+			c++;
+	return c;
+}
+

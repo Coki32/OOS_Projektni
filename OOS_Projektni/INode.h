@@ -10,14 +10,16 @@ public:
 	enum TYPE { FILE=0, FOLDER =1 };
 	static const uint32_t NOT_SET = 0xFFFFFFFF;
 	union {
-		uint32_t permissiosns;
 		union {
-			uint32_t dir : 3;
-			uint32_t user : 3;
-			uint32_t group : 3;
-			uint32_t all : 3;
-			uint32_t usesExtents : 1;
-			uint32_t type : 1;
+			uint32_t permissiosns;
+			struct {
+				uint32_t dir : 3;
+				uint32_t user : 3;
+				uint32_t group : 3;
+				uint32_t all : 3;
+				uint32_t usesExtents : 1;
+				uint32_t type : 1;
+			};
 		};//Total 13 zasad
 		//Ako predjes 31 kriza
 	};

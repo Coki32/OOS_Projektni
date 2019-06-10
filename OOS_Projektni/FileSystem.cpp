@@ -1,5 +1,6 @@
 #include <exception>
 #include <algorithm>
+#include <string_view>
 
 #include "FileSystem.h"
 #include "DiskList.h"
@@ -28,10 +29,11 @@ FileSystem::FileSystem()
 		file.write((char*)blocks.get(), (std::streamsize)numberOfBlocks*sizeof(Block));
 		std::cout << nodesOffset << std::endl << blocksOffset << std::endl;
 
-		rootEntries = std::vector<ListItem>();
-		rootEntries.push_back(ListItem("root", 0));
-		saveFileList(0, rootEntries);
-
+		std::vector<ListItem> root;
+		root.push_back(ListItem("root", 1));
+		saveFileList(0, root);
+		std::vector<ListItem> rootEntries;
+		saveFileList(1, rootEntries);
 	}
 }
 
@@ -50,11 +52,6 @@ FileSystem::FileSystem(const char* filename)
 		nodesOffset = file.tellg();
 		blocksOffset = nodesOffset + std::streampos((long long)numberOfNodes * sizeof(INode));
 
-		auto rootList = readData(0);
-		rootEntries = DiskList::fromData(rootList);
-		for (const auto& li : rootEntries) {
-			std::cout << li.name << " - " << li.nodeIndex << std::endl;
-		}
 	}
 }
 
@@ -82,9 +79,163 @@ std::shared_ptr<Data> FileSystem::readData(size_t nodeID)
 	return data->takeNFromLeft(filesize);
 }
 
+
+void FileSystem::deleteFile(const std::string& path)
+{
+	auto parent = Util::parentInPath(path);
+	auto file = Util::terminalPath(path);
+	size_t parentID = -1;
+	size_t fileID = -1;
+	try {
+		parentID = findIDByPath(parent);
+	}
+	catch (std::exception& ex) {}
+	if (parentID == -1) {
+		std::cout << "Putanja nije dobro zadata!" << std::endl;
+		return;
+	}
+	auto parentFileList = loadFileList(parentID);
+	auto searchResult = Util::findByName(parentFileList, file);
+	if (searchResult.nodeIndex == -1) {
+		std::cout << "Trazeni fajl ne postoji u datom folderu!" << std::endl;
+		return;
+	}
+	deleteFile(searchResult.nodeIndex);
+	parentFileList.erase(std::find_if(
+		parentFileList.begin(),
+		parentFileList.end(),
+		[&file](const ListItem& li) {return li.name.compare(file)==0; }));
+	saveFileList(parentID, parentFileList);
+	
+}
+
+void FileSystem::rm(const std::string& path, bool recursive)
+{
+	size_t nodeID = -1;
+	try {
+		nodeID = findIDByPath(path);
+	}
+	catch (std::exception& ex) {}
+	if (nodeID == -1) {
+		std::cout << "Data putanja ne postoji!" << std::endl;
+		return;
+	}
+	auto node = loadNode(nodeID);
+	if (node->type == INode::TYPE::FOLDER) {
+		auto files = loadFileList(nodeID);
+		if (!recursive && files.size() > 0) {
+			std::cout << "Za brisanje foldera sa sadrzajem koristi -r opciju za rekurzivno brisanje!" << std::endl;
+			return;
+		}
+		else if (recursive && files.size() > 0) {
+			for (const auto& li : files) {
+				auto fileNode = loadNode(li.nodeIndex);
+				if (fileNode->type == INode::TYPE::FILE)
+					rm(path + "/" + li.name, false);
+				else
+					rm(path + "/" + li.name, true);
+			}
+			//obrisi folder iz parent foldera
+			auto parentID = findIDByPath(Util::parentInPath(path));
+			auto parentList = loadFileList(parentID);
+			parentList.erase(std::find_if(parentList.begin(), parentList.end(), [&nodeID](const ListItem& li) { return li.nodeIndex == nodeID; }));
+			saveFileList(parentID, parentList);
+			deleteFile(nodeID);//Oslobodi njegov prostor
+		}
+	}
+	else {//ako je fajl, pozovi onu obicnu za brisanje fajla
+		deleteFile(path);
+	}
+}
+
 std::shared_ptr<Data> FileSystem::readFile(size_t nodeID)
 {
 	return readData(nodeID);
+}
+
+std::shared_ptr<Data> FileSystem::readFile(const std::string& path)
+{
+	size_t nodeID = -1;
+	try {
+		nodeID = findIDByPath(path);
+	}
+	catch (std::exception& ex) {}
+	if (nodeID == -1) {
+		std::cout << "Fajl ne postoji na trazenoj putanji!" << std::endl;
+		return std::make_shared<Data>(nullptr, 0);
+	}
+	if (loadNode(nodeID)->type == INode::TYPE::FOLDER){
+		std::cout << "Ne mozes citati iz foldera!" << std::endl;
+		return std::make_shared<Data>(nullptr, 0);
+	}
+	return readFile(nodeID);
+}
+
+void FileSystem::mv(const std::string& from, const std::string& to)
+{
+	size_t fromID = -1, toID = -1;
+	try {
+		fromID = findIDByPath(Util::parentInPath(from));
+		toID = findIDByPath(to);
+	}
+	catch (std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+		return;
+	}
+	if (fromID == -1 || toID == -1) {
+		std::cout << "Putanje nisu ispravne!\nPrva putanja mora biti do datoteke, druga do foldera!" << std::endl;
+		return;
+	}
+	auto fileList = loadFileList(fromID);
+	auto sourceName = Util::terminalPath(from);
+	auto searchResult = Util::findByName(fileList, sourceName);
+	if (searchResult.nodeIndex == -1) {
+		std::cout << "Trazena datoteka ne postoji u navedenom folderu!" << std::endl;
+		return;
+	}
+	if (loadNode(toID)->type != INode::TYPE::FOLDER) {
+		std::cout << "Odrediste mora biti folder!" << std::endl;
+		return;
+	}
+	auto sourceList = loadFileList(toID);
+	if (Util::findByName(sourceList, searchResult.name).nodeIndex == -1) {
+		sourceList.push_back(searchResult);
+		fileList.erase(std::find_if(fileList.begin(), fileList.end(),
+			[&sourceName](const ListItem& li) { return li.name.compare(sourceName) == 0; }
+		));
+		saveFileList(fromID, fileList);
+		saveFileList(toID, sourceList);
+	}
+	else {
+		std::cout << "Navedeno ime vec postoji u folderu!" << std::endl;
+	}
+}
+
+void FileSystem::rename(const std::string& original, const std::string& newName)
+{
+	size_t parentID = -1, fileID;
+	if (Util::stringSplit(newName, '/').size() > 1) {
+		std::cout << "Novo ime ne moze biti putanja! Za to koristi mv(...)" << std::endl;
+		return;
+	}
+	try {
+		parentID = findIDByPath(Util::parentInPath(original));
+	}
+	catch (std::exception& ex) {}
+	if (parentID == -1) {
+		std::cout << "Putanja nije ispravna!" << std::endl;
+		return;
+	}
+	auto parentFileList = loadFileList(parentID);
+	if (Util::findByName(parentFileList, newName).nodeIndex != -1) {
+		std::cout << "Trazeno ime vec postoji u datom folderu!" << std::endl;
+		return;
+	}
+	auto oldFilename = Util::terminalPath(original);
+	auto replacingIt = std::find_if(parentFileList.begin(), parentFileList.end(),
+		[&oldFilename](const ListItem& li) { return li.name.compare(oldFilename) == 0; });
+	replacingIt->name = newName;
+	saveFileList(parentID, parentFileList);
 }
 
 size_t FileSystem::getActualSize() const
@@ -97,11 +248,24 @@ size_t FileSystem::getDataSize() const
 	return blocks[0].getActualSize() * numberOfBlocks;
 }
 
+size_t FileSystem::getFreeSpace() const
+{
+	return blockBitmap->count(0) * BLOCK_SIZE;
+}
+
+void FileSystem::addFileToFolder(size_t folderID, size_t fileID, const std::string& filename)
+{
+	auto folderList = loadFileList(folderID);
+	folderList.push_back(ListItem(filename, fileID));
+	saveFileList(folderID, folderList);
+}
+
 void FileSystem::saveFileList(size_t nodeId, const std::vector<ListItem>& list)
 {
 	if (nodeBitmap->getBit(nodeId))
 		deleteFile(nodeId);
-	writeFile(nodeId, DiskList::toData(list));
+	writeFile(nodeId, DiskList::toData(list),INode::TYPE::FOLDER);
+
 }
 
 std::vector<ListItem> FileSystem::loadFileList(size_t nodeId)
@@ -169,7 +333,7 @@ void FileSystem::deleteFile(size_t nodeID)
 	uint16_t nextNode = nodeID;
 	do {
 		auto node = loadNode(nextNode);
-		nodesToRelease.push_back(nodeID);
+		nodesToRelease.push_back(nextNode);
 		for (const auto& block : node->getBlocks())
 			blocksToRelease.push_back(block);
 		nextNode = node->nextNode;
@@ -192,7 +356,7 @@ size_t FileSystem::writeFile(const std::shared_ptr<Data>& data)
 	return writeFile(nodeBitmap->findNextFreeField(), data);
 }
 
-size_t FileSystem::writeFile(const std::shared_ptr<Data>& data, const std::string& path)
+size_t FileSystem::writeFile(const std::shared_ptr<Data>& data, const std::string& path, bool overwrite)
 {
 	auto parts = Util::stringSplit(path, '/');
 	if (parts[0].compare("root") != 0)
@@ -200,71 +364,247 @@ size_t FileSystem::writeFile(const std::shared_ptr<Data>& data, const std::strin
 		std::cout << "Putanje moraju biti apsolutne, pocinju sa \"root/\"" << std::endl;
 		return -1;
 	}
-	else {
-		//nasao je root, trazi ono iza njega
-		int next = 1;
-		size_t parentIndex;
-		auto startingFolder = loadFileList(0);//kreni od roota
-		ListItem entry = ListItem("",-1);
-		do {
-			entry = Util::findByName(startingFolder, parts[next]);
-			if (entry.nodeIndex > 0) {
-				auto node = loadNode(entry.nodeIndex);
-				if (node->type == INode::TYPE::FOLDER) {
-					startingFolder = DiskList::fromData(getNodeData(node));
-					parentIndex = entry.nodeIndex;
-				}
-				next++;
-			}
-			else
-				break;
-		} while (entry.nodeIndex!=-1);
-		if (next == (parts.size() - 1)) {
-			auto nodeId = writeFile(data);
-			startingFolder.push_back(ListItem(parts[next], nodeId));
-			saveFileList(parentIndex, startingFolder);
-			return nodeId;
+	//Ako je putanja tipa root/fajl1, root/fajl.ext itd
+	else if (parts.size() == 2) {
+		auto rootFileList = loadFileList(1);
+		auto searchResult = Util::findByName(rootFileList, parts[1]);
+		size_t fileID = searchResult.nodeIndex;
+		if (searchResult.nodeIndex != -1 && overwrite) {
+			deleteFile(searchResult.nodeIndex);
+			writeFile(searchResult.nodeIndex, data);
 		}
-		else
-			std::cout << "Nema toga!";
+		else if (searchResult.nodeIndex != -1 && !overwrite) {
+			std::cout << "Fajl sa istim imenom vec postoji na datoj putanji!" << std::endl;
+			return -1;
+		}
+		else {
+			fileID = writeFile(data);
+			rootFileList.push_back(ListItem(parts[1], fileID));
+			saveFileList(1, rootFileList);
+		}
+		//write file uradi sve ostalo
+		return fileID;
 	}
-	return 1;
+	//inace ima vise dijelova tipa root/folderA/folderB/fajl ili root/A/B/f.ext
+	else {
+		//pocne od root-a
+		size_t currentFolderID = 0;
+		auto currentFileList = loadFileList(currentFolderID);
+		for (auto it = parts.begin(); it <= parts.end() - 2; ++it) {
+			auto nextItem = Util::findByName(currentFileList, *it);
+			if (nextItem.nodeIndex == -1) {
+				std::cout << "Folder " << *it << " ne postoji na zadatoj putanji!" << std::endl;
+				return -1;
+			}
+			else {
+				auto node = loadNode(nextItem.nodeIndex);
+				if (node->type != INode::TYPE::FOLDER) {
+					std::cout << *it << " nije folder!" << std::endl;
+					return -1;
+				}
+				else
+					currentFileList = loadFileList(currentFolderID=nextItem.nodeIndex);
+			}
+		}//nakon for-a, nasao je taj folder, njegov filelist je trenutno ucitan
+		//provjeri postoji li taj fajl vec u folderu
+		auto searchResult = Util::findByName(currentFileList, *(parts.end() - 1));
+		if (searchResult.nodeIndex != -1 && !overwrite) {
+			std::cout << "Fajl sa istim imenom vec postoji na toj putanji!" << std::endl;
+		}
+		else {
+			size_t fileID;
+			if (searchResult.nodeIndex != -1 && overwrite) {//Ako je overwrite obrisi ga, pa prepisi
+				deleteFile(searchResult.nodeIndex);
+				fileID = writeFile(searchResult.nodeIndex, data);
+				auto it = std::find_if(currentFileList.begin(), currentFileList.end(),
+					[&parts](const ListItem& li) { return li.name.compare(*(parts.end() - 1)) == 0;});
+				it->nodeIndex = fileID;
+			}
+			else {
+				fileID = writeFile(data);
+				currentFileList.push_back(ListItem(*(parts.end() - 1), fileID));
+			}
+			saveFileList(currentFolderID, currentFileList);
+			return fileID;
+		}
+	}
+	return -1;
 }
 
 size_t FileSystem::mkdir(const std::string& folderName)
 {
-	auto parts = Util::stringSplit(folderName, '/');
-	int next = 0;
-	auto startingFolder = rootEntries;
-	size_t parentFolder = 0;
-	ListItem entry = ListItem("", -1);
-	do {
-		entry = Util::findByName(startingFolder, parts[next]);
-		if (entry.nodeIndex >= 0) {
-			auto node = loadNode(entry.nodeIndex);
-			if (node->type == INode::TYPE::FOLDER) {
-				startingFolder = DiskList::fromData(getNodeData(node));
-				parentFolder = entry.nodeIndex;
-			}
-			next++;
+	try {
+		if (findIDByPath(folderName) != -1)
+		{
+			std::cout << "Folder vec postoji!" << std::endl;
+			return -1;
 		}
-		else
-			break;
-	} while (entry.nodeIndex != -1);
-	if (next == (parts.size() - 1)) {
-		auto folderID = nodeBitmap->findNextFreeField();
-		auto folderNode = std::make_shared<INode>();
-		folderNode->type = INode::TYPE::FOLDER;
-		writeNode(folderID, folderNode);
-		startingFolder.push_back(ListItem(parts[next], folderID));
-		saveFileList(parentFolder, startingFolder);
-		return folderID;
 	}
-	else
-		std::cout << "Nema toga!";
+	catch (std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+		return -1;
+	}
+	std::string parent = Util::parentInPath(folderName);
+	std::string newOne = Util::terminalPath(folderName);
+	auto parentID = findIDByPath(parent);
+	if (parentID == -1) {
+		std::cout << "Putanja " << parent << " ne postoji!" << std::endl;
+		return -1;
+	}
+	auto parentList = loadFileList(parentID);
+	if (Util::findByName(parentList, newOne).nodeIndex != -1) {
+		std::cout << "Folder vec postoji na zadatoj putanji!" << std::endl;
+	}
+	else {
+		auto newfolderID = nodeBitmap->findNextFreeField();
+		auto newfolderNode = std::make_shared<INode>();
+		std::vector<ListItem> emptyList;
+		saveFileList(newfolderID, emptyList);
+		parentList.push_back(ListItem(newOne, newfolderID));
+		saveFileList(parentID, parentList);
+		return newfolderID;
+	}
 }
 
-size_t FileSystem::writeFile(size_t nodeId, const std::shared_ptr<Data>& data)
+void FileSystem::ls(size_t nodeID, bool recursive, const std::string& prefix)
+{
+	auto node = loadNode(nodeID);
+	if (node->type == INode::TYPE::FOLDER) {
+		if (!recursive) {
+			auto list = loadFileList(nodeID);
+			for (const auto& li : list) {
+				std::cout << prefix << li.name << "("<<li.nodeIndex<<")" << std::endl;
+			}
+		}
+		else {
+			auto list = loadFileList(nodeID);
+			for (const auto& li : list) {
+				std::cout << prefix << li.name << "(" << li.nodeIndex << ")" << std::endl;
+				ls(li.nodeIndex, recursive, prefix + "\t");
+			}
+		}
+	}
+}
+
+void FileSystem::ls(const std::string& path, bool recursive)
+{
+	size_t pathID = -1;
+	try {
+		pathID = path.length() == 0 ? 0 : findIDByPath(path);
+	}
+	catch (std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+		return;
+	}
+	if (pathID == -1) {
+		std::cout << "Putanja " << path << " ne postoji!" << std::endl;
+	}
+	else
+		ls(pathID, recursive);
+}
+
+size_t FileSystem::cp(const std::string& from, const std::string& to)
+{
+	try {
+		auto fromID = findIDByPath(Util::parentInPath(from));
+		if (fromID == -1) {
+			std::cout << "Zadati folder ne postoji!" << std::endl;
+			return -1;
+		}
+		auto fileList = loadFileList(fromID);
+		auto fileID = Util::findByName(fileList,Util::terminalPath(from));
+		if (fileID.nodeIndex == -1) {
+			std::cout << "Zadati fajl ne postoji u datom folderu!" << std::endl;
+			return -1;
+		}
+		if (loadNode(fileID.nodeIndex)->type != INode::TYPE::FILE) {
+			std::cout << "Putanja mora zavrsavati fajlom!" << std::endl;
+		}
+		auto res = writeFile(readData(fileID.nodeIndex), to, false);
+		if (res == -1) {
+			std::cout << "Fajl sa istim imenom vec postoji u odredistu!" << std::endl;
+		}
+		return res;
+	}
+	catch (std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+	}
+}
+
+size_t FileSystem::create(const std::string& path)
+{
+	auto parent = Util::parentInPath(path);
+	auto filename = Util::terminalPath(path);
+	try {
+		size_t folderID = -1;
+		try {
+			folderID = findIDByPath(parent);
+		}
+		catch (std::exception& ex) {}
+		if (folderID == -1) {
+			std::cout << "Putanja ne postoji!" << std::endl;
+			return -1;
+		}
+		auto folderFileList = loadFileList(folderID);
+		auto searchResult = Util::findByName(folderFileList, filename);
+		if (searchResult.nodeIndex != -1) {
+			std::cout << "Fajl vec postoji na zadatoj putanji!" << std::endl;
+			return -1;
+		}
+		auto newFileID = nodeBitmap->findNextFreeField();
+		auto newFileNode = std::make_shared<INode>();
+		writeNode(newFileID, newFileNode);
+		folderFileList.push_back(ListItem(filename, newFileID));
+		saveFileList(folderID, folderFileList);
+	}
+	catch (std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+	}
+}
+
+size_t FileSystem::echo(const std::string& path, const std::string& content)
+{
+	size_t nodeID = -1;
+	try {
+		nodeID = findIDByPath(path);
+	}
+	catch (std::exception& ex) {}
+	if (nodeID == -1) {
+		std::cout << "Ne mogu da nadjem fajl " << path << std::endl;
+		return -1;
+	}
+	auto node = loadNode(nodeID);
+	if (node->type == INode::TYPE::FOLDER) {
+		std::cout << "Putanja je do foldera!" << std::endl;
+		return -1;
+	}
+	auto data = std::make_shared<Data>(content.c_str(), content.length());
+	//prvo ga obrisi pa upisi opet, da ne zauzima jos blokova....
+	deleteFile(nodeID);
+	return writeFile(nodeID, data);
+}
+
+void FileSystem::cat(const std::string& path, std::ostream& os)
+{
+	size_t nodeID = -1;
+	try {
+		nodeID = findIDByPath(path);
+	}
+	catch(std::exception& ex){}
+	if (nodeID == -1) {
+		std::cout << "Putanja nije ispravna!" << std::endl;
+		return;
+	}
+	auto node = loadNode(nodeID);
+	if (loadNode(nodeID)->type == INode::TYPE::FOLDER) {
+		std::cout << "Putanja je do foldera! (ne mozes echo folder!)" << std::endl;
+	}
+	auto data = getNodeData(node);
+	//string_view je tu da ogranici duzinu da ne predje slucajno sto ne treba!
+	os << std::string_view(data->data.get(), data->length) << std::endl;
+}
+
+size_t FileSystem::writeFile(size_t nodeId, const std::shared_ptr<Data>& data, INode::TYPE tip)
 {
 	auto extents = blockBitmap->findExtentStart_v(data->length);
 	auto modifiableData = std::make_shared<Data>(data->data.get(), data->length);
@@ -273,7 +613,7 @@ size_t FileSystem::writeFile(size_t nodeId, const std::shared_ptr<Data>& data)
 	size_t startNodePos = nodeId;
 	nodeBitmap->setBit(nodeId);
 	newNode = std::make_shared<INode>(data->length);
-
+	newNode->type = tip;
 	while (extents.size() > 0) {
 		for (int i = 0; i < 6; i++)
 		{
@@ -303,6 +643,32 @@ size_t FileSystem::writeFile(size_t nodeId, const std::shared_ptr<Data>& data)
 	//ovo bi trebalo biti unreachable, al ono, ok...
 	saveBitmaps();
 	return startNodePos;
+}
+
+size_t FileSystem::findIDByPath(const std::string& path)
+{
+	auto parts = Util::stringSplit(path, '/');
+	size_t folderID = 0;
+	auto nextPart = parts.begin();
+	do {
+		if (loadNode(folderID)->type == INode::TYPE::FILE) {
+			//U vecini slucajeva ovo nije bitno, mora se paziti samo kod nekih poziva
+			//zato se kod vecine koristi prazan try-catch blok, osim kod mkdir i cp npr
+			std::cout << "Putaja ne zavrsava fajlom nego ih sadrzi!" << std::endl;
+			throw std::exception("Putanja ne zavrsava fajlom!");
+		}
+		
+		auto currentList = loadFileList(folderID);
+		auto nextListItem = Util::findByName(currentList, *nextPart);
+		if (nextListItem.nodeIndex == -1) {
+			return -1;
+		}
+		else {
+			folderID = nextListItem.nodeIndex;
+		}
+		++nextPart;
+	} while (nextPart != parts.end());
+	return folderID;
 }
 
 

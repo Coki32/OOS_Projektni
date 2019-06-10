@@ -12,7 +12,7 @@ std::vector<int> INode::getBlocks()
 					break;
 	else
 		for (int i = 0; i < 12; i++)
-			if (blocks[i] != INode::NOT_SET)
+			if (this->blocks[i] != INode::NOT_SET)
 				blocks.push_back(blocks[i]);
 			else
 				break;

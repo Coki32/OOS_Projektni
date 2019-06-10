@@ -19,6 +19,22 @@ bool Util::stringContains(const std::string& string, char c)
 	return std::find(string.begin(), string.end(), c) != string.end();
 }
 
+std::string Util::parentInPath(const std::string& path)
+{
+	std::string parent;
+	auto parts = Util::stringSplit(path, '/');
+	int next = 0;
+	parts.erase(parts.end() - 1);
+	for (const auto& p : parts)
+		parent += p + "/";
+	return parent;
+}
+
+std::string Util::terminalPath(const std::string& path)
+{
+	return *(Util::stringSplit(path, '/').end() - 1);
+}
+
 std::vector<std::string> Util::stringSplit(const std::string& str, char delimiter)
 {
 	std::vector<std::string> parts;

@@ -19,6 +19,8 @@ public:
 	size_t findNextFreeField();
 	std::vector<std::pair<int,int>> findExtentStart_v(size_t extentSizeInBytes);
 
+	size_t count(int value);
+
 	inline void setBit(int idx)
 	{
 		if (idx >= numberOfBits)
