@@ -70,7 +70,7 @@ size_t FileSystem::put(const std::string& src, const std::string& dst)
 	if (sourceStream.is_open()) {
 		sourceStream.seekg(0, std::fstream::end);
 		size_t filesize = (size_t)sourceStream.tellg();
-		if (filesize < (64 * 1024 * 1024 - 1))
+		if (filesize < (UINT32_MAX-1) && filesize < getFreeSpace())
 		{
 			auto input = std::make_unique<char[]>(filesize);
 			sourceStream.seekg(0);
@@ -78,7 +78,7 @@ size_t FileSystem::put(const std::string& src, const std::string& dst)
 			result = writeFile(std::make_shared<Data>(input.get(), filesize), dst);
 		}
 		else
-			std::cout << "Maksimalna velicina fajla je 64kB (zapravo 65535b)" << std::endl;
+			std::cout << "Nedovoljno prostora za fajl!" << std::endl;
 	}
 	else
 		std::cout << "Ne mogu otvoriti ulaznu datoteku. (Je li ime ispravno?)" << std::endl;
@@ -295,6 +295,19 @@ void FileSystem::stat(const std::string& path, std::ostream& os)
 	}
 }
 
+void FileSystem::info() const
+{
+	auto totalSpace = numberOfBlocks * BLOCK_SIZE;
+	auto usedSpace = blockBitmap->count(1) * BLOCK_SIZE;
+	auto totalNodes = numberOfNodes;
+	auto usedNodes = nodeBitmap->count(1);
+	auto usedSpacePercent = 1.0 * usedSpace / totalSpace;
+	auto usedNodesPercent = 1.0 * usedNodes / totalNodes;
+	std::cout << "Iskoristeno: " << usedSpace << "b" << std::endl <<
+		"Dostupno: " << totalSpace - usedSpace << "b ("<< 100*( 1-usedSpacePercent )<< "%)" << std::endl << 
+		"iNodes used:" << usedNodes << " (" << 100*usedNodesPercent << "%)" << std::endl;
+}
+
 size_t FileSystem::getActualSize() const
 {
 	return nodeBitmap->getActualSize() + blockBitmap->getActualSize() + iNodes[0].getActualSize() * numberOfNodes + blocks[0].getActualSize() * numberOfBlocks;
@@ -347,9 +360,14 @@ std::shared_ptr<INode> FileSystem::loadNode(size_t nodeID)
 std::shared_ptr<Data> FileSystem::getNodeData(const std::shared_ptr<INode>& node)
 {
 	auto data = std::make_shared<Data>(nullptr, 0);
-	for (const auto& blockID : node->getBlocks()) {
-		data = data->append(loadBlock(blockID)->getData());
+	if (node->usesExtents) {
+		for (const auto& ext : node->getExtents())
+			data = data->append(readBlocks(ext.first, ext.second));
 	}
+	else
+		for (const auto& blockID : node->getBlocks())
+			data = data->append(readBlock(blockID)->getData());
+		
 	return data;
 }
 
@@ -362,12 +380,20 @@ void FileSystem::writeNode(size_t nodeID, const std::shared_ptr<INode>& node)
 	file.write((char*)node.get(), sizeof(INode));
 }
 
-std::shared_ptr<Block> FileSystem::loadBlock(size_t blockID)
+std::shared_ptr<Block> FileSystem::readBlock(size_t blockID)
 {
 	auto block = std::make_shared<Block>();
 	file.seekg(calculateBlockPos(blockID));
 	file.read((char*)block.get(), sizeof(Block));
 	return block;
+}
+
+std::shared_ptr<Data> FileSystem::readBlocks(size_t startBlock, size_t endBlock)
+{
+	auto data = std::make_unique<char[]>((endBlock - startBlock + 1) * BLOCK_SIZE);
+	file.seekg(calculateBlockPos(startBlock));
+	file.read(&data[0], ((long long)endBlock - startBlock + 1) * BLOCK_SIZE);
+	return std::make_shared<Data>(data.get(), (endBlock - startBlock + 1) * BLOCK_SIZE);
 }
 
 std::shared_ptr<Data> FileSystem::writeBlock(size_t blockID, const std::shared_ptr<Data>& data)
@@ -383,11 +409,24 @@ std::shared_ptr<Data> FileSystem::writeBlock(size_t blockID, const std::shared_p
 		return std::make_shared<Data>(nullptr, 0);
 }
 
+std::shared_ptr<Data> FileSystem::writeBlocks(size_t startBlock, size_t endBlock, const std::shared_ptr<Data>& data) {
+	if (data->length > 0 && startBlock <= endBlock) {
+		file.seekp(calculateBlockPos(startBlock));
+		file.write(data->data.get(), data->length < ((endBlock - startBlock + 1) * BLOCK_SIZE) ? data->length : ((endBlock - startBlock + 1) * BLOCK_SIZE));
+		for (size_t i = startBlock; i <= endBlock; ++i)
+			blockBitmap->setBit(i);
+		saveBitmaps();
+		return data->removeNFromLeft((endBlock - startBlock + 1) * BLOCK_SIZE);
+	}
+	else
+		return std::make_shared<Data>(nullptr, 0);
+}
+
 void FileSystem::deleteFile(size_t nodeID)
 {
 	std::vector<uint16_t> nodesToRelease;
 	std::vector<size_t> blocksToRelease;
-	uint16_t nextNode = nodeID;
+	uint16_t nextNode = (uint16_t)nodeID;
 	do {
 		auto node = loadNode(nextNode);
 		nodesToRelease.push_back(nextNode);
@@ -514,7 +553,10 @@ size_t FileSystem::mkdir(const std::string& folderName)
 	}
 	else {
 		auto newfolderID = nodeBitmap->findNextFreeField();
-		auto newfolderNode = std::make_shared<INode>();
+		if (newfolderID == -1) {
+			std::cout << "iNode indeks za novi folder je -1, vjerovatno je nestalo node-a na disku!" << std::endl;
+			return newfolderID;
+		}
 		std::vector<ListItem> emptyList;
 		saveFileList(newfolderID, emptyList);
 		parentList.push_back(ListItem(newOne, newfolderID));
@@ -611,6 +653,9 @@ size_t FileSystem::create(const std::string& path)
 			return -1;
 		}
 		auto newFileID = nodeBitmap->findNextFreeField();
+		if (newFileID == -1) {
+			std::cout << "iNode indeks novog fajla je -1, vjerovatno je nestalo iNode-a na disku!" << std::endl;
+		}
 		auto newFileNode = std::make_shared<INode>();
 		writeNode(newFileID, newFileNode);
 		folderFileList.push_back(ListItem(filename, newFileID));
@@ -666,9 +711,18 @@ void FileSystem::cat(const std::string& path, std::ostream& os)
 
 size_t FileSystem::writeFile(size_t nodeId, const std::shared_ptr<Data>& data, INode::TYPE tip)
 {
+	if (nodeId == -1) {
+		std::cout << "NodeID indeks je -1, vjerovatno je nestalo iNode-a na disku!" << std::endl;
+		return nodeId;
+	}
 	auto extents = blockBitmap->findExtentStart_v(data->length);
+	if (extents.size() == 0) {
+		//Tipa, ovdje ako ikad dodje znaci da nesto prije ovoga nije dobro. Ne moze ovdje doci jer je provjera uradjena
+		//u put funkciji, ova je privatna
+		std::cout << "Nema dovoljno prostora na disku za trazenih "<< data->length<<"b, dostupno "<<getFreeSpace()<<"b" << std::endl;
+		return -1;
+	}
 	auto modifiableData = std::make_shared<Data>(data->data.get(), data->length);
-	
 	std::shared_ptr<INode> newNode;
 	size_t startNodePos = nodeId;
 	nodeBitmap->setBit(nodeId);
@@ -682,19 +736,22 @@ size_t FileSystem::writeFile(size_t nodeId, const std::shared_ptr<Data>& data, I
 			newNode->usesExtents = 1;
 			newNode->extentInfo[i][0] = first.first;
 			newNode->extentInfo[i][1] = first.second;
-			for (int blockId = first.first; blockId <= first.second; blockId++) {
-				modifiableData = writeBlock(blockId, modifiableData);
-				if (modifiableData->length == 0)
-				{
-					writeNode(nodeId, newNode);
-					saveBitmaps();
-					return startNodePos;
-				}
+			modifiableData = writeBlocks(first.first, first.second, modifiableData);
+			if (modifiableData->length == 0)
+			{
+				writeNode(nodeId, newNode);
+				saveBitmaps();
+				return startNodePos;
 			}
 		}
 		writeNode(nodeId, newNode);
 		if (extents.size() > 0) {//ako ih ima jos za upisati
 			nodeId = nodeBitmap->findNextFreeField();
+			if (nodeId == -1) {
+				std::cout << "Sljedeci iNode je -1, nema vise iNode-a na disku!" << std::endl;
+				deleteFile(startNodePos);
+				return -1;
+			}
 			nodeBitmap->setBit(nodeId);
 			newNode->nextNode = (uint16_t)nodeId;
 			newNode = std::make_shared<INode>(modifiableData->length);
@@ -755,4 +812,3 @@ std::streamoff FileSystem::calculateBlockPos(size_t blockID)
 {
 	return actualPosition(blockID, sizeof(Block), blocksOffset);
 }
-

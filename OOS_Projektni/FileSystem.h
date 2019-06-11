@@ -36,6 +36,12 @@ public:
 	FileSystem();
 	FileSystem(const char* file);
 
+	FileSystem(const FileSystem& other) = delete;
+	FileSystem(FileSystem&& other) = delete;
+
+	FileSystem& operator=(const FileSystem& other) = delete;
+	FileSystem& operator=(FileSystem&& other) = delete;
+
 	~FileSystem();
 
 	//"Puts" the "src" file onto the filesystem on path "dst". Doesn't overwrite the file if it exists
@@ -74,7 +80,7 @@ public:
 
 	//Deletes the file pointed to by the string "path", also removes it from the parent folder
 	void deleteFile(const std::string& path);
-
+	
 	//Also deletes the file by the path, but it can remove folders and files
 	void rm(const std::string& path, bool recursive = false);
 
@@ -96,6 +102,9 @@ public:
 	//Prints out the info for the specified file/folder
 	//by default, it uses std::cout
 	void stat(const std::string& path, std::ostream& os = std::cout);
+
+	//Prints out info, like free space, number of nodes, blocks etc.
+	void info() const;
 
 	size_t getActualSize() const;
 	size_t getDataSize() const;
@@ -121,9 +130,15 @@ private:
 	std::shared_ptr<Data> getNodeData(const std::shared_ptr<INode>& node);
 	void writeNode(size_t nodeID, const std::shared_ptr<INode>& node);
 
-	std::shared_ptr<Block> loadBlock(size_t blockID);
+
+	std::shared_ptr<Block> readBlock(size_t blockID);
+	std::shared_ptr<Data> readBlocks(size_t startBlock, size_t endBlock);
+
 	//Upisuje 128 bajtova u taj blok, kao rezultat vraca sto je ostalo da se upise dalje
 	std::shared_ptr<Data> writeBlock(size_t blockID, const std::shared_ptr<Data>& data);
+
+	//writes the whole extent at once
+	std::shared_ptr<Data> writeBlocks(size_t startBlock, size_t endBlock, const std::shared_ptr<Data>& data);
 
 
 	size_t writeFile(const std::shared_ptr<Data>& data);

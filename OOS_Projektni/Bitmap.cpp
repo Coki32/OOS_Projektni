@@ -42,12 +42,16 @@ std::vector<std::pair<int, int>> Bitmap::findExtentStart_v(size_t extentSizeInBy
 	if (numberOfBitsRequired > numberOfBits)
 		return ret;//ne moze nikad imati vise nego sto ima...
 	int curr = currentBit;
+	int steps = 0;
 	do {
 		if (getBit(curr) == 0) {//ako je slobodan ovaj, trazi dalje
 			int start = curr;
 			int end = start;
-			while (getBit(end) == 0 && (end - start + 1) <= numberOfBitsRequired && end<this->numberOfBits)
-				end++;
+			while (getBit(end) == 0 && (end - start + 1) <= numberOfBitsRequired && end < this->numberOfBits)
+			{
+				end = (end + 1) % this->numberOfBits;
+				steps++;
+			}
 			if (end > start) {
 				ret.push_back(std::make_pair(start, end - 1));
 				numberOfBitsRequired -= (end - start);
@@ -55,6 +59,8 @@ std::vector<std::pair<int, int>> Bitmap::findExtentStart_v(size_t extentSizeInBy
 			}
 		}
 		curr = (curr + 1) % this->numberOfBits;
+		if (steps >= numberOfBits)
+			return std::vector<std::pair<int, int>>();
 	} while (curr != currentBit && numberOfBitsRequired>0);
 	return ret;
 }

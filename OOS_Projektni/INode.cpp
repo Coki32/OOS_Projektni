@@ -21,6 +21,17 @@ std::vector<int> INode::getBlocks() const
 	return blocks;
 }
 
+std::vector<std::pair<int, int>> INode::getExtents() const
+{
+	std::vector<std::pair<int, int>> extents;
+	for (int i = 0; i < 6; i++)
+		if (extentInfo[i][0] == NOT_SET)
+			break;
+		else
+			extents.push_back(std::make_pair(extentInfo[i][0], extentInfo[i][1]));
+	return extents;
+}
+
 static inline std::string permToStr(int perm) {
 	std::string rez = "---";
 	if (perm & 0x1)

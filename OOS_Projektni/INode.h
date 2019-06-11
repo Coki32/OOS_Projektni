@@ -18,6 +18,7 @@ struct INode
 				uint32_t others : 3;
 				uint32_t usesExtents : 1;
 				uint32_t type : 1;
+				uint32_t nextNode : 16;
 			};
 		};//Total 14 zasad
 		//Ako predjes 31 kriza
@@ -31,11 +32,10 @@ struct INode
 			NOT_SET, NOT_SET, NOT_SET };
 		uint32_t extentInfo[6][2];
 	};
-	uint16_t nextNode;
-	uint16_t fileSize;
+	uint32_t fileSize;
 
 public:
-	INode(uint16_t fileSize) : INode() {
+	INode(uint32_t fileSize) : INode() {
 		this->fileSize = fileSize;
 	}
 	INode() {
@@ -47,7 +47,7 @@ public:
 	}
 
 	std::vector<int> getBlocks() const;
-
+	std::vector<std::pair<int, int>> getExtents() const;
 	inline size_t getActualSize() const {
 		return sizeof(*this);
 	}
