@@ -4,32 +4,36 @@
 #include "Blok.h"
 #include "Data.h"
 
-class INode
+struct INode
 {
-public:
 	enum TYPE { FILE=0, FOLDER =1 };
 	static const uint32_t NOT_SET = 0xFFFFFFFF;
 	union {
 		union {
 			uint32_t permissiosns;
 			struct {
-				uint32_t dir : 3;
+				uint32_t unused : 3;//unused
 				uint32_t user : 3;
 				uint32_t group : 3;
-				uint32_t all : 3;
+				uint32_t others : 3;
 				uint32_t usesExtents : 1;
 				uint32_t type : 1;
 			};
-		};//Total 13 zasad
+		};//Total 14 zasad
 		//Ako predjes 31 kriza
 	};
 
 	union {
-		uint32_t blocks[12];
+		uint32_t blocks[12] = {
+			NOT_SET, NOT_SET, NOT_SET,
+			NOT_SET, NOT_SET, NOT_SET,
+			NOT_SET, NOT_SET, NOT_SET,
+			NOT_SET, NOT_SET, NOT_SET };
 		uint32_t extentInfo[6][2];
 	};
 	uint16_t nextNode;
 	uint16_t fileSize;
+
 public:
 	INode(uint16_t fileSize) : INode() {
 		this->fileSize = fileSize;
@@ -42,11 +46,14 @@ public:
 		fileSize = 0;
 	}
 
-	std::vector<int> getBlocks();
+	std::vector<int> getBlocks() const;
 
 	inline size_t getActualSize() const {
 		return sizeof(*this);
 	}
+
+	friend std::ostream& operator<<(std::ostream& os, const INode& node);
+
 };
 
 static_assert(sizeof(INode) == 56U, "NODE MORA BITI 56b");

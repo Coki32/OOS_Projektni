@@ -63,6 +63,50 @@ FileSystem::~FileSystem()
 	}
 }
 
+size_t FileSystem::put(const std::string& src, const std::string& dst)
+{
+	size_t result = -1;
+	std::fstream sourceStream = std::fstream(src, std::ios::binary | std::ios::in);
+	if (sourceStream.is_open()) {
+		sourceStream.seekg(0, std::fstream::end);
+		size_t filesize = (size_t)sourceStream.tellg();
+		if (filesize < (64 * 1024 * 1024 - 1))
+		{
+			auto input = std::make_unique<char[]>(filesize);
+			sourceStream.seekg(0);
+			sourceStream.read(input.get(), filesize);
+			result = writeFile(std::make_shared<Data>(input.get(), filesize), dst);
+		}
+		else
+			std::cout << "Maksimalna velicina fajla je 64kB (zapravo 65535b)" << std::endl;
+	}
+	else
+		std::cout << "Ne mogu otvoriti ulaznu datoteku. (Je li ime ispravno?)" << std::endl;
+	return result;
+}
+
+void FileSystem::get(const std::string& src, const std::string& dst)
+{
+	size_t nodeID = -1;
+	try {
+		nodeID = findIDByPath(src);
+	}
+	catch (...) {
+		std::cout << "Ne mogu da nadjem fajl " << src << " na sistemu!" << std::endl;
+		return;
+	}
+	auto data = readFile(nodeID);
+	std::fstream destinationStream = std::fstream(dst, std::ios::out | std::ios::binary | std::ios::trunc);
+	if (destinationStream.is_open()) {
+		destinationStream.write(data->data.get(), data->length);
+		destinationStream.flush();
+		destinationStream.close();
+	}
+	else
+		std::cout << "Ne mogu ovoriti izlazni fajl na sistemu. (Prava pristupa? Mozda admin?)" << std::endl;
+
+}
+
 
 std::shared_ptr<Data> FileSystem::readData(size_t nodeID)
 {
@@ -89,7 +133,7 @@ void FileSystem::deleteFile(const std::string& path)
 	try {
 		parentID = findIDByPath(parent);
 	}
-	catch (std::exception& ex) {}
+	catch (...) {}
 	if (parentID == -1) {
 		std::cout << "Putanja nije dobro zadata!" << std::endl;
 		return;
@@ -115,7 +159,7 @@ void FileSystem::rm(const std::string& path, bool recursive)
 	try {
 		nodeID = findIDByPath(path);
 	}
-	catch (std::exception& ex) {}
+	catch (...) {}
 	if (nodeID == -1) {
 		std::cout << "Data putanja ne postoji!" << std::endl;
 		return;
@@ -159,7 +203,7 @@ std::shared_ptr<Data> FileSystem::readFile(const std::string& path)
 	try {
 		nodeID = findIDByPath(path);
 	}
-	catch (std::exception& ex) {}
+	catch (...) {}
 	if (nodeID == -1) {
 		std::cout << "Fajl ne postoji na trazenoj putanji!" << std::endl;
 		return std::make_shared<Data>(nullptr, 0);
@@ -213,7 +257,7 @@ void FileSystem::mv(const std::string& from, const std::string& to)
 
 void FileSystem::rename(const std::string& original, const std::string& newName)
 {
-	size_t parentID = -1, fileID;
+	size_t parentID = -1;
 	if (Util::stringSplit(newName, '/').size() > 1) {
 		std::cout << "Novo ime ne moze biti putanja! Za to koristi mv(...)" << std::endl;
 		return;
@@ -221,7 +265,7 @@ void FileSystem::rename(const std::string& original, const std::string& newName)
 	try {
 		parentID = findIDByPath(Util::parentInPath(original));
 	}
-	catch (std::exception& ex) {}
+	catch (...) {}
 	if (parentID == -1) {
 		std::cout << "Putanja nije ispravna!" << std::endl;
 		return;
@@ -236,6 +280,19 @@ void FileSystem::rename(const std::string& original, const std::string& newName)
 		[&oldFilename](const ListItem& li) { return li.name.compare(oldFilename) == 0; });
 	replacingIt->name = newName;
 	saveFileList(parentID, parentFileList);
+}
+
+void FileSystem::stat(const std::string& path, std::ostream& os)
+{
+	size_t nodeID = -1;
+	try {
+		nodeID = findIDByPath(path);
+	}
+	catch (...){}
+	if (nodeID != -1) {
+		auto node = loadNode(nodeID);
+		os << *node << std::endl;
+	}
 }
 
 size_t FileSystem::getActualSize() const
@@ -464,6 +521,7 @@ size_t FileSystem::mkdir(const std::string& folderName)
 		saveFileList(parentID, parentList);
 		return newfolderID;
 	}
+	return -1;
 }
 
 void FileSystem::ls(size_t nodeID, bool recursive, const std::string& prefix)
@@ -529,6 +587,7 @@ size_t FileSystem::cp(const std::string& from, const std::string& to)
 	catch (std::exception& ex) {
 		std::cout << ex.what() << std::endl;
 	}
+	return -1;
 }
 
 size_t FileSystem::create(const std::string& path)
@@ -540,7 +599,7 @@ size_t FileSystem::create(const std::string& path)
 		try {
 			folderID = findIDByPath(parent);
 		}
-		catch (std::exception& ex) {}
+		catch (...) {}
 		if (folderID == -1) {
 			std::cout << "Putanja ne postoji!" << std::endl;
 			return -1;
@@ -560,6 +619,7 @@ size_t FileSystem::create(const std::string& path)
 	catch (std::exception& ex) {
 		std::cout << ex.what() << std::endl;
 	}
+	return -1;
 }
 
 size_t FileSystem::echo(const std::string& path, const std::string& content)
@@ -568,7 +628,7 @@ size_t FileSystem::echo(const std::string& path, const std::string& content)
 	try {
 		nodeID = findIDByPath(path);
 	}
-	catch (std::exception& ex) {}
+	catch (...) {}
 	if (nodeID == -1) {
 		std::cout << "Ne mogu da nadjem fajl " << path << std::endl;
 		return -1;
@@ -590,7 +650,7 @@ void FileSystem::cat(const std::string& path, std::ostream& os)
 	try {
 		nodeID = findIDByPath(path);
 	}
-	catch(std::exception& ex){}
+	catch(...){}
 	if (nodeID == -1) {
 		std::cout << "Putanja nije ispravna!" << std::endl;
 		return;

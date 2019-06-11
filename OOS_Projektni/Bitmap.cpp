@@ -12,7 +12,7 @@
 Bitmap::Bitmap(int numberOfBits, size_t sizeOfOneBit)
 {
 	this->sizeOfOneBit = sizeOfOneBit;
-	this->numberOfChars = std::ceil(numberOfBits / sizeof(char));
+	this->numberOfChars = (int)std::ceil(numberOfBits / sizeof(char));
 
 	this->numberOfBits = numberOfBits;
 	this->bits = std::make_unique<char[]>(numberOfChars);

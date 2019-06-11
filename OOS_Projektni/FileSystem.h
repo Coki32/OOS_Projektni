@@ -38,12 +38,12 @@ public:
 
 	~FileSystem();
 
+	//"Puts" the "src" file onto the filesystem on path "dst". Doesn't overwrite the file if it exists
+	//returns the iNode index if successful, -1 otherwise
+	size_t put(const std::string& src, const std::string& dst);
 
-	std::shared_ptr<Data> readData(size_t nodeID);
-
-	//writes to first free node
-	size_t writeFile(const std::shared_ptr<Data>& data, const std::string& path, bool overwrite = false);
-
+	//"Gets" the "src" file and saves it as "dst" on the existing filesystem.
+	void get(const std::string& src, const std::string& dst);
 
 	//Creates the specified folder if the folder exists it prints out a message, otherwise returns iNode number for the folder it just created
 	size_t mkdir(const std::string& folderName);
@@ -53,6 +53,7 @@ public:
 
 	//ls, from specified path, not-recursive by default
 	void ls(const std::string& path, bool recursive = false);
+
 
 	//Copies data from "from" into new file "to", does not overwrite the existing file returns the iNode ID of the file which it created
 	size_t cp(const std::string& from, const std::string& to);
@@ -84,7 +85,6 @@ public:
 	//reads data from the file pointed to by the specified string "path"
 	std::shared_ptr<Data> readFile(const std::string& path);
 
-
 	//moves the file from "from" to "to" paths
 	void mv(const std::string& from, const std::string& to);
 
@@ -93,6 +93,9 @@ public:
 	//eg rename("root/folderA/subfolder/file.a","nope") would rename "file.a" to "nope"
 	void rename(const std::string& original, const std::string& newName);
 
+	//Prints out the info for the specified file/folder
+	//by default, it uses std::cout
+	void stat(const std::string& path, std::ostream& os = std::cout);
 
 	size_t getActualSize() const;
 	size_t getDataSize() const;
@@ -102,6 +105,12 @@ public:
 	size_t findIDByPath(const std::string& path);
 
 private:
+
+	std::shared_ptr<Data> readData(size_t nodeID);
+
+	//writes to first free node
+	size_t writeFile(const std::shared_ptr<Data>& data, const std::string& path, bool overwrite = false);
+
 
 	void addFileToFolder(size_t folderID, size_t fileID, const std::string& filename);
 

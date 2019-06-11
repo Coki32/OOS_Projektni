@@ -7,7 +7,7 @@ struct BinaryListEntry {
 	int strLen;
 	const char* str;
 	int nodeIdx;
-	BinaryListEntry(){}
+	BinaryListEntry() : strLen(0), str(nullptr), nodeIdx(0){}
 	BinaryListEntry(const std::string& str, int nodeIdx) {
 		this->strLen = str.length()+1;
 		this->str = str.c_str();
@@ -82,7 +82,7 @@ std::vector<ListItem> DiskList::fromData(const std::shared_ptr<Data>& data)
 		char* binary = &data->data[0];
 		numberOfElements = *(int*)binary;//prvi podatak je int koliko ih je
 		binary += sizeof(numberOfElements);
-		for (int i = 0; i < numberOfElements; i++) {
+		for (size_t i = 0; i < numberOfElements; i++) {
 			BinaryListEntry entry = BinaryListEntry::fromBinary(binary);
 			items.push_back(entry.toFancyItem());
 			binary += entry.getActualSize();
