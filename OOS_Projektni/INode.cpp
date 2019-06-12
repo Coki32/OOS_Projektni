@@ -47,7 +47,7 @@ static inline std::string dirToStr(int dir) {
 	if (dir == INode::TYPE::FOLDER)
 		return "d";
 	else
-		return "-";
+		return "f";
 }
 
 std::ostream& operator<<(std::ostream& os, const INode& node)

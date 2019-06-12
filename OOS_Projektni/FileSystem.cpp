@@ -7,40 +7,68 @@
 #include "Util.h"
 
 
-FileSystem::FileSystem()
-{
-	numberOfNodes = DEFAULT_NUMBER_OF_INODES;
-	numberOfBlocks = DEFAULT_NUMBER_OF_BLOCKS;
-	nodeBitmap = std::unique_ptr<Bitmap>(new Bitmap(numberOfNodes, sizeof(INode)));
-	blockBitmap = std::unique_ptr<Bitmap>(new Bitmap(numberOfBlocks, sizeof(Block)));
-	iNodes = std::make_unique<INode[]>(numberOfNodes);
-	blocks = std::make_unique<Block[]>(numberOfBlocks);
-
-	file = std::fstream(DEFAULT_FILENAME, std::fstream::out| std::fstream::in | std::fstream::binary | std::fstream::trunc);
-	if (file.is_open()) {
-		file.write((char*)& numberOfNodes, sizeof(numberOfNodes));
-		file.write((char*)& numberOfBlocks, sizeof(numberOfBlocks));
-
-		file.write(nodeBitmap->getBits().get(), nodeBitmap->getActualSize());
-		file.write(blockBitmap->getBits().get(), blockBitmap->getActualSize());
-		nodesOffset = file.tellp();
-		file.write((char*)iNodes.get(), (std::streamsize)numberOfNodes*sizeof(INode));//BROJ U BAJTOVIMA!!!!!
-		blocksOffset = file.tellp();
-		file.write((char*)blocks.get(), (std::streamsize)numberOfBlocks*sizeof(Block));
-		std::cout << nodesOffset << std::endl << blocksOffset << std::endl;
-
-		std::vector<ListItem> root;
-		root.push_back(ListItem("root", 1));
-		saveFileList(0, root);
-		std::vector<ListItem> rootEntries;
-		saveFileList(1, rootEntries);
-	}
-}
+//FileSystem::FileSystem()
+//{
+//	numberOfNodes = DEFAULT_NUMBER_OF_INODES;
+//	numberOfBlocks = DEFAULT_NUMBER_OF_BLOCKS;
+//	nodeBitmap = std::unique_ptr<Bitmap>(new Bitmap(numberOfNodes, sizeof(INode)));
+//	blockBitmap = std::unique_ptr<Bitmap>(new Bitmap(numberOfBlocks, sizeof(Block)));
+//	iNodes = std::make_unique<INode[]>(numberOfNodes);
+//	blocks = std::make_unique<Block[]>(numberOfBlocks);
+//
+//	file = std::fstream(DEFAULT_FILENAME, std::fstream::out| std::fstream::in | std::fstream::binary | std::fstream::trunc);
+//	if (file.is_open()) {
+//		file.write((char*)& numberOfNodes, sizeof(numberOfNodes));
+//		file.write((char*)& numberOfBlocks, sizeof(numberOfBlocks));
+//
+//		file.write(nodeBitmap->getBits().get(), nodeBitmap->getActualSize());
+//		file.write(blockBitmap->getBits().get(), blockBitmap->getActualSize());
+//		nodesOffset = file.tellp();
+//		file.write((char*)iNodes.get(), (std::streamsize)numberOfNodes*sizeof(INode));//BROJ U BAJTOVIMA!!!!!
+//		blocksOffset = file.tellp();
+//		file.write((char*)blocks.get(), (std::streamsize)numberOfBlocks*sizeof(Block));
+//		std::cout << nodesOffset << std::endl << blocksOffset << std::endl;
+//
+//		std::vector<ListItem> root;
+//		root.push_back(ListItem("root", 1));
+//		saveFileList(0, root);
+//		std::vector<ListItem> rootEntries;
+//		saveFileList(1, rootEntries);
+//	}
+//}
 
 FileSystem::FileSystem(const char* filename)
 {
 	this->file = std::fstream(filename, std::ios::binary | std::ios::in | std::ios::out);
-	if (file.is_open()) {
+	if (!file.is_open()) {
+		std::cout << "Fajlsistem ne postoji, pravim novi!" << std::endl;
+		file = std::fstream(filename, std::fstream::out | std::fstream::in | std::fstream::binary | std::fstream::trunc);
+		numberOfNodes = DEFAULT_NUMBER_OF_INODES;
+		numberOfBlocks = DEFAULT_NUMBER_OF_BLOCKS;
+		nodeBitmap = std::unique_ptr<Bitmap>(new Bitmap(numberOfNodes, sizeof(INode)));
+		blockBitmap = std::unique_ptr<Bitmap>(new Bitmap(numberOfBlocks, sizeof(Block)));
+		auto iNodes = std::make_unique<INode[]>(numberOfNodes);
+		auto blocks = std::make_unique<Block[]>(numberOfBlocks);
+		if (file.is_open()) {
+			file.write((char*)& numberOfNodes, sizeof(numberOfNodes));
+			file.write((char*)& numberOfBlocks, sizeof(numberOfBlocks));
+
+			file.write(nodeBitmap->getBits().get(), nodeBitmap->getActualSize());
+			file.write(blockBitmap->getBits().get(), blockBitmap->getActualSize());
+			nodesOffset = file.tellp();
+			file.write((char*)iNodes.get(), (std::streamsize)numberOfNodes * sizeof(INode));//BROJ U BAJTOVIMA!!!!!
+			blocksOffset = file.tellp();
+			file.write((char*)blocks.get(), (std::streamsize)numberOfBlocks * sizeof(Block));
+			std::cout << nodesOffset << std::endl << blocksOffset << std::endl;
+
+			std::vector<ListItem> root;
+			root.push_back(ListItem("root", 1));
+			saveFileList(0, root);
+			std::vector<ListItem> rootEntries;
+			saveFileList(1, rootEntries);
+		}
+	}
+	else if (file.is_open()) {
 		file.read((char*)& numberOfNodes, sizeof(numberOfNodes));
 		file.read((char*)& numberOfBlocks, sizeof(numberOfBlocks));
 
@@ -51,7 +79,10 @@ FileSystem::FileSystem(const char* filename)
 		file.read(blockBitmap->getBits().get(), numberOfBlocks);
 		nodesOffset = file.tellg();
 		blocksOffset = nodesOffset + std::streampos((long long)numberOfNodes * sizeof(INode));
-
+	}
+	else {
+		std::cout << "Ne mogu otvoriti fajl. Imate li prava pristupa folderu?" << std::endl;
+		throw std::exception("Nije moguce otvoriti fajl!");
 	}
 }
 
@@ -85,7 +116,7 @@ size_t FileSystem::put(const std::string& src, const std::string& dst)
 	return result;
 }
 
-void FileSystem::get(const std::string& src, const std::string& dst)
+bool FileSystem::get(const std::string& src, const std::string& dst)
 {
 	size_t nodeID = -1;
 	try {
@@ -93,7 +124,7 @@ void FileSystem::get(const std::string& src, const std::string& dst)
 	}
 	catch (...) {
 		std::cout << "Ne mogu da nadjem fajl " << src << " na sistemu!" << std::endl;
-		return;
+		return false;
 	}
 	auto data = readFile(nodeID);
 	std::fstream destinationStream = std::fstream(dst, std::ios::out | std::ios::binary | std::ios::trunc);
@@ -101,9 +132,11 @@ void FileSystem::get(const std::string& src, const std::string& dst)
 		destinationStream.write(data->data.get(), data->length);
 		destinationStream.flush();
 		destinationStream.close();
+		return true;
 	}
 	else
 		std::cout << "Ne mogu ovoriti izlazni fajl na sistemu. (Prava pristupa? Mozda admin?)" << std::endl;
+	return false;
 
 }
 
@@ -164,6 +197,10 @@ void FileSystem::rm(const std::string& path, bool recursive)
 		std::cout << "Data putanja ne postoji!" << std::endl;
 		return;
 	}
+	if (nodeID == 0) {
+		std::cout << "Ne mozes brisati root!" << std::endl;
+		return;
+	}
 	auto node = loadNode(nodeID);
 	if (node->type == INode::TYPE::FOLDER) {
 		auto files = loadFileList(nodeID);
@@ -215,7 +252,7 @@ std::shared_ptr<Data> FileSystem::readFile(const std::string& path)
 	return readFile(nodeID);
 }
 
-void FileSystem::mv(const std::string& from, const std::string& to)
+bool FileSystem::mv(const std::string& from, const std::string& to)
 {
 	size_t fromID = -1, toID = -1;
 	try {
@@ -224,22 +261,22 @@ void FileSystem::mv(const std::string& from, const std::string& to)
 	}
 	catch (std::exception& ex) {
 		std::cout << ex.what() << std::endl;
-		return;
+		return false;
 	}
 	if (fromID == -1 || toID == -1) {
 		std::cout << "Putanje nisu ispravne!\nPrva putanja mora biti do datoteke, druga do foldera!" << std::endl;
-		return;
+		return false;
 	}
 	auto fileList = loadFileList(fromID);
 	auto sourceName = Util::terminalPath(from);
 	auto searchResult = Util::findByName(fileList, sourceName);
 	if (searchResult.nodeIndex == -1) {
 		std::cout << "Trazena datoteka ne postoji u navedenom folderu!" << std::endl;
-		return;
+		return false;
 	}
 	if (loadNode(toID)->type != INode::TYPE::FOLDER) {
 		std::cout << "Odrediste mora biti folder!" << std::endl;
-		return;
+		return false;
 	}
 	auto sourceList = loadFileList(toID);
 	if (Util::findByName(sourceList, searchResult.name).nodeIndex == -1) {
@@ -252,15 +289,17 @@ void FileSystem::mv(const std::string& from, const std::string& to)
 	}
 	else {
 		std::cout << "Navedeno ime vec postoji u folderu!" << std::endl;
+		return false;
 	}
+	return true;
 }
 
-void FileSystem::rename(const std::string& original, const std::string& newName)
+bool FileSystem::rename(const std::string& original, const std::string& newName)
 {
 	size_t parentID = -1;
 	if (Util::stringSplit(newName, '/').size() > 1) {
 		std::cout << "Novo ime ne moze biti putanja! Za to koristi mv(...)" << std::endl;
-		return;
+		return false;
 	}
 	try {
 		parentID = findIDByPath(Util::parentInPath(original));
@@ -268,18 +307,19 @@ void FileSystem::rename(const std::string& original, const std::string& newName)
 	catch (...) {}
 	if (parentID == -1) {
 		std::cout << "Putanja nije ispravna!" << std::endl;
-		return;
+		return false;
 	}
 	auto parentFileList = loadFileList(parentID);
 	if (Util::findByName(parentFileList, newName).nodeIndex != -1) {
 		std::cout << "Trazeno ime vec postoji u datom folderu!" << std::endl;
-		return;
+		return false;
 	}
 	auto oldFilename = Util::terminalPath(original);
 	auto replacingIt = std::find_if(parentFileList.begin(), parentFileList.end(),
 		[&oldFilename](const ListItem& li) { return li.name.compare(oldFilename) == 0; });
 	replacingIt->name = newName;
 	saveFileList(parentID, parentFileList);
+	return true;
 }
 
 void FileSystem::stat(const std::string& path, std::ostream& os)
@@ -308,14 +348,18 @@ void FileSystem::info() const
 		"iNodes used:" << usedNodes << " (" << 100*usedNodesPercent << "%)" << std::endl;
 }
 
+void FileSystem::CLEAR()
+{
+}
+
 size_t FileSystem::getActualSize() const
 {
-	return nodeBitmap->getActualSize() + blockBitmap->getActualSize() + iNodes[0].getActualSize() * numberOfNodes + blocks[0].getActualSize() * numberOfBlocks;
+	return nodeBitmap->getActualSize() + blockBitmap->getActualSize() + sizeof(INode) * numberOfNodes + sizeof(Block) * numberOfBlocks;
 }
 
 size_t FileSystem::getDataSize() const
 {
-	return blocks[0].getActualSize() * numberOfBlocks;
+	return sizeof(Block) * numberOfBlocks;
 }
 
 size_t FileSystem::getFreeSpace() const
@@ -368,7 +412,7 @@ std::shared_ptr<Data> FileSystem::getNodeData(const std::shared_ptr<INode>& node
 		for (const auto& blockID : node->getBlocks())
 			data = data->append(readBlock(blockID)->getData());
 		
-	return data;
+	return data->takeNFromLeft(node->fileSize);
 }
 
 //Write node samo treba da upise taj node na to mjesto, nista vise
@@ -542,7 +586,7 @@ size_t FileSystem::mkdir(const std::string& folderName)
 	}
 	std::string parent = Util::parentInPath(folderName);
 	std::string newOne = Util::terminalPath(folderName);
-	auto parentID = findIDByPath(parent);
+	auto parentID = parent=="" ? 0 : findIDByPath(parent);
 	if (parentID == -1) {
 		std::cout << "Putanja " << parent << " ne postoji!" << std::endl;
 		return -1;
@@ -572,14 +616,14 @@ void FileSystem::ls(size_t nodeID, bool recursive, const std::string& prefix)
 	if (node->type == INode::TYPE::FOLDER) {
 		if (!recursive) {
 			auto list = loadFileList(nodeID);
-			for (const auto& li : list) {
-				std::cout << prefix << li.name << "("<<li.nodeIndex<<")" << std::endl;
-			}
+			for (const auto& li : list)
+				std::cout << prefix << li.name << (node->type == INode::TYPE::FOLDER ? "*" : "") << std::endl;
 		}
 		else {
 			auto list = loadFileList(nodeID);
 			for (const auto& li : list) {
-				std::cout << prefix << li.name << "(" << li.nodeIndex << ")" << std::endl;
+				auto node = loadNode(li.nodeIndex);
+				std::cout << prefix << li.name << (node->type==INode::TYPE::FOLDER ? "*":"" )<< std::endl;
 				ls(li.nodeIndex, recursive, prefix + "\t");
 			}
 		}
@@ -767,7 +811,7 @@ size_t FileSystem::findIDByPath(const std::string& path)
 	auto parts = Util::stringSplit(path, '/');
 	size_t folderID = 0;
 	auto nextPart = parts.begin();
-	do {
+	while (nextPart != parts.end()) {
 		if (loadNode(folderID)->type == INode::TYPE::FILE) {
 			//U vecini slucajeva ovo nije bitno, mora se paziti samo kod nekih poziva
 			//zato se kod vecine koristi prazan try-catch blok, osim kod mkdir i cp npr
@@ -784,7 +828,7 @@ size_t FileSystem::findIDByPath(const std::string& path)
 			folderID = nextListItem.nodeIndex;
 		}
 		++nextPart;
-	} while (nextPart != parts.end());
+	} ;
 	return folderID;
 }
 

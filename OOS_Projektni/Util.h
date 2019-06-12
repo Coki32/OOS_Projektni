@@ -16,4 +16,8 @@ struct Util {
 	static std::string terminalPath(const std::string& path);
 
 	static std::vector<std::string> stringSplit(const std::string& str, char delimiter);
+
+	static std::vector<std::string> stringsAfter(const std::vector<std::string>& input, int n);
+
+	static std::string concat(const std::vector<std::string>& strings, char delim);
 };

@@ -20,8 +20,6 @@ class FileSystem
 
 	std::unique_ptr<Bitmap> nodeBitmap;
 	std::unique_ptr<Bitmap> blockBitmap;
-	std::unique_ptr<INode[]> iNodes;
-	std::unique_ptr<Block[]> blocks;
 
 	//std::vector<ListItem> rootEntries;
 
@@ -33,7 +31,7 @@ public:
 
 	const static size_t DEFAULT_NUMBER_OF_INODES = 13067;
 	const static size_t DEFAULT_NUMBER_OF_BLOCKS = 156796;
-	FileSystem();
+	//FileSystem();
 	FileSystem(const char* file);
 
 	FileSystem(const FileSystem& other) = delete;
@@ -49,7 +47,7 @@ public:
 	size_t put(const std::string& src, const std::string& dst);
 
 	//"Gets" the "src" file and saves it as "dst" on the existing filesystem.
-	void get(const std::string& src, const std::string& dst);
+	bool get(const std::string& src, const std::string& dst);
 
 	//Creates the specified folder if the folder exists it prints out a message, otherwise returns iNode number for the folder it just created
 	size_t mkdir(const std::string& folderName);
@@ -92,12 +90,12 @@ public:
 	std::shared_ptr<Data> readFile(const std::string& path);
 
 	//moves the file from "from" to "to" paths
-	void mv(const std::string& from, const std::string& to);
+	bool mv(const std::string& from, const std::string& to);
 
 	//Renames the last path part from name "original", to name "newName"
 	//eg rename("root/folderA/subfolder","nope") would rename "subfolder" to "nope"
 	//eg rename("root/folderA/subfolder/file.a","nope") would rename "file.a" to "nope"
-	void rename(const std::string& original, const std::string& newName);
+	bool rename(const std::string& original, const std::string& newName);
 
 	//Prints out the info for the specified file/folder
 	//by default, it uses std::cout
@@ -105,6 +103,8 @@ public:
 
 	//Prints out info, like free space, number of nodes, blocks etc.
 	void info() const;
+
+	void CLEAR();
 
 	size_t getActualSize() const;
 	size_t getDataSize() const;

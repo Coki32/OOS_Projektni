@@ -44,3 +44,18 @@ std::vector<std::string> Util::stringSplit(const std::string& str, char delimite
 		parts.push_back(part);
 	return parts;
 }
+
+std::vector<std::string> Util::stringsAfter(const std::vector<std::string>& input, int n)
+{
+	auto copy = std::vector(input);
+	copy.erase(copy.begin(), copy.begin()+n);
+	return copy;
+}
+
+std::string Util::concat(const std::vector<std::string>& strings, char delim)
+{
+	std::string combined;
+	for (const auto& str : strings)
+		combined = combined + str + delim;
+	return combined;
+}
