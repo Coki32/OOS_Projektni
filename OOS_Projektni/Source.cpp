@@ -79,7 +79,6 @@ int main() {
 					std::cout << "Fajl uspjesno kreiran!" << std::endl;
 			}
 		}
-
 		else if (command == "get") {
 			if (rest.size() != 2) {
 				std::cout << "get ocekuje 2 argumenta: " << std::endl << "prvi argument putanja fajla na sistemu koji \"skidas\"" << std::endl <<
