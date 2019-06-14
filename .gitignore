@@ -340,3 +340,4 @@ ASALocalRun/
 healthchecksdb
 
 *.ext4nt
+/OOS_Projektni/ClassDiagram.cd

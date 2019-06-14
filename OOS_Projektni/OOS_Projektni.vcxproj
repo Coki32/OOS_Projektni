@@ -146,7 +146,7 @@
     <ClInclude Include="Util.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="slika.jpg" />
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

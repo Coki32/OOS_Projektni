@@ -79,8 +79,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="slika.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
 </Project>
