@@ -9,8 +9,6 @@
 #include "INode.h"
 #include "ListItem.h"
 
-#include "File.h"
-
 #define DEFAULT_FILENAME "defaultName.ext4nt"
 
 class FileSystem

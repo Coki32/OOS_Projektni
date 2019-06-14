@@ -19,12 +19,6 @@
     <Filter Include="Source Files\FilesystemStuff">
       <UniqueIdentifier>{654b8644-5f7b-4aa0-864b-93937f61a84a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\IOOperatrions">
-      <UniqueIdentifier>{1ae186f0-5b99-41d2-a863-b53893cd7a58}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\IOOperations">
-      <UniqueIdentifier>{d980f39a-1d11-4f7c-b910-5fe76e8575a6}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\Util">
       <UniqueIdentifier>{45096e5b-104a-4638-9784-8c730d7dfa53}</UniqueIdentifier>
     </Filter>
@@ -54,9 +48,6 @@
     <ClCompile Include="INode.cpp">
       <Filter>Source Files\FilesystemStuff</Filter>
     </ClCompile>
-    <ClCompile Include="File.cpp">
-      <Filter>Source Files\IOOperations</Filter>
-    </ClCompile>
     <ClCompile Include="Util.cpp">
       <Filter>Source Files\Util</Filter>
     </ClCompile>
@@ -82,9 +73,6 @@
     </ClInclude>
     <ClInclude Include="ListItem.h">
       <Filter>Header Files\FilesystemStuff</Filter>
-    </ClInclude>
-    <ClInclude Include="File.h">
-      <Filter>Header Files\IOOperatrions</Filter>
     </ClInclude>
     <ClInclude Include="Util.h">
       <Filter>Header Files\Util</Filter>

@@ -130,7 +130,6 @@
     <ClCompile Include="Blok.cpp" />
     <ClCompile Include="Data.cpp" />
     <ClCompile Include="DiskList.cpp" />
-    <ClCompile Include="File.cpp" />
     <ClCompile Include="FileSystem.cpp" />
     <ClCompile Include="INode.cpp" />
     <ClCompile Include="Source.cpp" />
@@ -141,7 +140,6 @@
     <ClInclude Include="Blok.h" />
     <ClInclude Include="Data.h" />
     <ClInclude Include="DiskList.h" />
-    <ClInclude Include="File.h" />
     <ClInclude Include="FileSystem.h" />
     <ClInclude Include="INode.h" />
     <ClInclude Include="ListItem.h" />

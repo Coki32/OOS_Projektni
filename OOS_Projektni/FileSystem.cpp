@@ -7,49 +7,21 @@
 #include "Util.h"
 
 
-//FileSystem::FileSystem()
-//{
-//	numberOfNodes = DEFAULT_NUMBER_OF_INODES;
-//	numberOfBlocks = DEFAULT_NUMBER_OF_BLOCKS;
-//	nodeBitmap = std::unique_ptr<Bitmap>(new Bitmap(numberOfNodes, sizeof(INode)));
-//	blockBitmap = std::unique_ptr<Bitmap>(new Bitmap(numberOfBlocks, sizeof(Block)));
-//	iNodes = std::make_unique<INode[]>(numberOfNodes);
-//	blocks = std::make_unique<Block[]>(numberOfBlocks);
-//
-//	file = std::fstream(DEFAULT_FILENAME, std::fstream::out| std::fstream::in | std::fstream::binary | std::fstream::trunc);
-//	if (file.is_open()) {
-//		file.write((char*)& numberOfNodes, sizeof(numberOfNodes));
-//		file.write((char*)& numberOfBlocks, sizeof(numberOfBlocks));
-//
-//		file.write(nodeBitmap->getBits().get(), nodeBitmap->getActualSize());
-//		file.write(blockBitmap->getBits().get(), blockBitmap->getActualSize());
-//		nodesOffset = file.tellp();
-//		file.write((char*)iNodes.get(), (std::streamsize)numberOfNodes*sizeof(INode));//BROJ U BAJTOVIMA!!!!!
-//		blocksOffset = file.tellp();
-//		file.write((char*)blocks.get(), (std::streamsize)numberOfBlocks*sizeof(Block));
-//		std::cout << nodesOffset << std::endl << blocksOffset << std::endl;
-//
-//		std::vector<ListItem> root;
-//		root.push_back(ListItem("root", 1));
-//		saveFileList(0, root);
-//		std::vector<ListItem> rootEntries;
-//		saveFileList(1, rootEntries);
-//	}
-//}
-
 FileSystem::FileSystem(const char* filename)
 {
 	this->file = std::fstream(filename, std::ios::binary | std::ios::in | std::ios::out);
 	if (!file.is_open()) {
 		std::cout << "Fajlsistem ne postoji, pravim novi!" << std::endl;
 		file = std::fstream(filename, std::fstream::out | std::fstream::in | std::fstream::binary | std::fstream::trunc);
-		numberOfNodes = DEFAULT_NUMBER_OF_INODES;
-		numberOfBlocks = DEFAULT_NUMBER_OF_BLOCKS;
-		nodeBitmap = std::unique_ptr<Bitmap>(new Bitmap(numberOfNodes, sizeof(INode)));
-		blockBitmap = std::unique_ptr<Bitmap>(new Bitmap(numberOfBlocks, sizeof(Block)));
-		auto iNodes = std::make_unique<INode[]>(numberOfNodes);
-		auto blocks = std::make_unique<Block[]>(numberOfBlocks);
 		if (file.is_open()) {
+			numberOfNodes = DEFAULT_NUMBER_OF_INODES;
+			numberOfBlocks = DEFAULT_NUMBER_OF_BLOCKS;
+			nodeBitmap = std::unique_ptr<Bitmap>(new Bitmap(numberOfNodes, sizeof(INode)));
+			blockBitmap = std::unique_ptr<Bitmap>(new Bitmap(numberOfBlocks, sizeof(Block)));
+			auto iNodes = std::make_unique<INode[]>(numberOfNodes);
+			auto blocks = std::make_unique<Block[]>(numberOfBlocks);
+
+			//upisi pocetne vrijednosti
 			file.write((char*)& numberOfNodes, sizeof(numberOfNodes));
 			file.write((char*)& numberOfBlocks, sizeof(numberOfBlocks));
 
@@ -66,7 +38,10 @@ FileSystem::FileSystem(const char* filename)
 			saveFileList(0, root);
 			std::vector<ListItem> rootEntries;
 			saveFileList(1, rootEntries);
+			file.flush();//za svaki slucaj
 		}
+		else
+			throw std::exception("Ne mogu napraviti novi fajl na sistemu. (Prava pristupa? Mozda admin? Neispravno ime?)");
 	}
 	else if (file.is_open()) {
 		file.read((char*)& numberOfNodes, sizeof(numberOfNodes));
@@ -124,6 +99,10 @@ bool FileSystem::get(const std::string& src, const std::string& dst)
 	}
 	catch (...) {
 		std::cout << "Ne mogu da nadjem fajl " << src << " na sistemu!" << std::endl;
+		return false;
+	}
+	if (loadNode(nodeID)->type == INode::TYPE::FOLDER) {
+		std::cout << "Nije moguce skidanje citavog foldera odjednom!" << std::endl;
 		return false;
 	}
 	auto data = readFile(nodeID);

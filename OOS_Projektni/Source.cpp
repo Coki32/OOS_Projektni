@@ -7,7 +7,14 @@
 
 #include "Util.h"
 int main() {
-	auto fs = std::make_unique<FileSystem>("sistem2.ext4nt");
+	std::unique_ptr<FileSystem> fs;
+	try {
+		fs = std::make_unique<FileSystem>("sistem2.ext4nt");
+	}
+	catch (std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+		return 0;
+	}
 	std::string line;
 	do {
 		std::cout << "command: ";
