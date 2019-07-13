@@ -13,13 +13,10 @@
 
 class FileSystem
 {
-
 	std::streampos nodesOffset, blocksOffset;
 
 	std::unique_ptr<Bitmap> nodeBitmap;
 	std::unique_ptr<Bitmap> blockBitmap;
-
-	//std::vector<ListItem> rootEntries;
 
 	std::fstream file;
 
@@ -56,13 +53,11 @@ public:
 	//ls, from specified path, not-recursive by default
 	void ls(const std::string& path, bool recursive = false);
 
-
 	//Copies data from "from" into new file "to", does not overwrite the existing file returns the iNode ID of the file which it created
 	size_t cp(const std::string& from, const std::string& to);
 
 	//Creates an empty file with size 0, no blocks asociated
 	size_t create(const std::string& path);
-
 
 	//Writes from string "content" into the file pointed to by the "path" parameter. File must exist.
 	size_t echo(const std::string& path, const std::string& content);
@@ -112,12 +107,10 @@ public:
 	size_t findIDByPath(const std::string& path);
 
 private:
-
 	std::shared_ptr<Data> readData(size_t nodeID);
 
 	//writes to first free node
 	size_t writeFile(const std::shared_ptr<Data>& data, const std::string& path, bool overwrite = false);
-
 
 	void addFileToFolder(size_t folderID, size_t fileID, const std::string& filename);
 
@@ -128,28 +121,23 @@ private:
 	std::shared_ptr<Data> getNodeData(const std::shared_ptr<INode>& node);
 	void writeNode(size_t nodeID, const std::shared_ptr<INode>& node);
 
-
 	std::shared_ptr<Block> readBlock(size_t blockID);
 	std::shared_ptr<Data> readBlocks(size_t startBlock, size_t endBlock);
 
-	//Upisuje 128 bajtova u taj blok, kao rezultat vraca sto je ostalo da se upise dalje
+	//Writes 128 bytes into the specified block, returns the remaining data to be written somewhere else
 	std::shared_ptr<Data> writeBlock(size_t blockID, const std::shared_ptr<Data>& data);
 
 	//writes the whole extent at once
 	std::shared_ptr<Data> writeBlocks(size_t startBlock, size_t endBlock, const std::shared_ptr<Data>& data);
-
 
 	size_t writeFile(const std::shared_ptr<Data>& data);
 
 	//writes to the specified node, overwriting it, no checks performed
 	size_t writeFile(size_t nodeId, const std::shared_ptr<Data>& data, INode::TYPE tip = INode::TYPE::FILE);
 
-
 	void saveBitmaps();
 
 	std::streamoff calculateNodePos(size_t nodeID);
 	std::streamoff calculateBlockPos(size_t blockID);
-
-
 };
 

@@ -394,7 +394,6 @@ std::shared_ptr<Data> FileSystem::getNodeData(const std::shared_ptr<INode>& node
 	return data->takeNFromLeft(node->fileSize);
 }
 
-//Write node samo treba da upise taj node na to mjesto, nista vise
 void FileSystem::writeNode(size_t nodeID, const std::shared_ptr<INode>& node)
 {
 	nodeBitmap->setBit(nodeID);
@@ -726,6 +725,7 @@ void FileSystem::cat(const std::string& path, std::ostream& os)
 	auto node = loadNode(nodeID);
 	if (loadNode(nodeID)->type == INode::TYPE::FOLDER) {
 		std::cout << "Putanja je do foldera! (ne mozes echo folder!)" << std::endl;
+		return;
 	}
 	auto data = getNodeData(node);
 	//string_view je tu da ogranici duzinu da ne predje slucajno sto ne treba!
@@ -814,7 +814,6 @@ size_t FileSystem::findIDByPath(const std::string& path)
 
 void FileSystem::saveBitmaps()
 {
-	//mislim, ko i file.seekp(8) ali ako neko nesto promijeni....
 	file.seekp(0+sizeof(numberOfBlocks)+sizeof(numberOfNodes));
 	file.write(nodeBitmap->getBits().get(), nodeBitmap->getActualSize());
 	file.write(blockBitmap->getBits().get(), blockBitmap->getActualSize());

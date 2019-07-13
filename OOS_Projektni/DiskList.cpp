@@ -68,8 +68,6 @@ std::shared_ptr<Data> DiskList::toData(const std::vector<ListItem>& items)
 		memcpy_s((char*)&result->data[0] + complete, totalSize, entry.toPlainBinary().get(), entry.getActualSize());
 		complete += entry.getActualSize();
 	}
-	//potvrdi da je sve to tacno te veclicine
-	_ASSERT(complete == totalSize);
 	result->length = totalSize;//postavi velicinu
 	return result;//vrati Data pokazivac
 }
